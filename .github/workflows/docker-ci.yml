@@ -2,22 +2,40 @@ name: Docker Image CI
 
 on:
   workflow_dispatch:
-
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: |
-        docker build . --file Dockerfile --tag ghcr.io/p4likas51/laravel-postalcodes:latest
-        docker login ghcr.io -u p4likas51 -p ${{secrets.GHCR_TOKEN}}
-        docker push ghcr.io/p4likas51/laravel-postalcodes:latest
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Build and push Docker image
+        run: |
+          docker build . --file Dockerfile \
+            --tag ghcr.io/p4likas51/laravel-postalcodes:${{ github.sha }} \
+            --tag ghcr.io/p4likas51/laravel-postalcodes:latest
+
+          docker login ghcr.io -u p4likas51 -p ${{ secrets.GHCR_TOKEN }}
+
+          docker push ghcr.io/p4likas51/laravel-postalcodes:${{ github.sha }}
+          docker push ghcr.io/p4likas51/laravel-postalcodes:latest
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v2
+        with:
+
+          app-name: 'TownFinder'
+
+          slot-name: 'production'
+
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+
+          # Az image, amit az Azure-nak le kell töltenie.
+          # Fontos, hogy az egyedi, commit SHA-val címkézett verziót adjuk meg neki!
+          images: 'ghcr.io/p4likas51/laravel-postalcodes:${{ github.sha }}'
