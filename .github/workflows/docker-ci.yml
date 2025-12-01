@@ -1,0 +1,23 @@
+name: Docker Image CI
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      run: |
+        docker build . --file Dockerfile --tag ghcr.io/p4likas51/laravel-postalcodes:latest
+        docker login ghcr.io -u p4likas51 -p ${{secrets.GHCR_TOKEN}}
+        docker push ghcr.io/p4likas51/laravel-postalcodes:latest
